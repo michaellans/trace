@@ -156,9 +156,11 @@ class ControlPanel(QtWidgets.QWidget):
             last_axis.add_curve(pv)
         
         plot = self.plot
-        new_curve = plot._curves[-1]
-        key = self._generate_pv_key()
-        self._curve_dict[key] = new_curve
+        
+        if plot._curves:
+            new_curve = plot._curves[-1]
+            key = self._generate_pv_key()
+            self._curve_dict[key] = new_curve
 
     def recursionCheck(self, target: str, rowHeaders: dict) -> bool:
         """Internal method that uses DFS to confirm there are not cyclical formula dependencies
