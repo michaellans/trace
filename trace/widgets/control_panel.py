@@ -11,6 +11,10 @@ from widgets import AxisSettingsModal, CurveSettingsModal
 from widgets.table_widgets import ColorButton
 from widgets.archive_search import ArchiveSearchWidget
 from widgets.formula_dialog import FormulaDialog
+from widgets.utilities.formula_validation import (
+    validate_formula,
+    sanitize_for_validation,
+)
 
 
 class ControlPanel(QtWidgets.QWidget):
@@ -204,10 +208,8 @@ class ControlPanel(QtWidgets.QWidget):
         if not self.recursionCheck(rowName, pvdict):
             raise ValueError("There was a recursive dependency somewhere")
         if not pvdict:
-            try:
-                eval(formula[4:])
-            except SyntaxError:
-                raise SyntaxError("Invalid Input")
+            expression = formula[4:]
+            validate_formula(expression, allowed_symbols=set())
         return pvdict
 
     def closeEvent(self, a0: QtGui.QCloseEvent):
@@ -329,12 +331,12 @@ class AxisItem(QtWidgets.QWidget):
                 raise ValueError(f"{var_name} is an invalid variable name. Available: {available_vars}")
             var_dict[var_name] = control_panel._curve_dict[var_name]
 
-        if not var_dict:
-            expression = formula[4:]  # Remove "f://" prefix
-            try:
-                eval(expression)
-            except SyntaxError:
-                raise ValueError(f"Invalid mathematical expression: {expression}.")
+        expr_body = formula[4:]
+        if var_names:
+            python_expr, allowed = sanitize_for_validation(expr_body)
+            validate_formula(python_expr, allowed_symbols=allowed)
+        else:
+            validate_formula(expr_body, allowed_symbols=set())
 
         index = len(plot._curves)
         color = ColorButton.index_color(index)
@@ -657,12 +659,12 @@ class CurveItem(QtWidgets.QWidget):
                         f"Variable '{var_name}' not found. Available: {list(control_panel._curve_dict.keys())}"
                     )
 
-            if not var_names:
-                expression = new_formula[4:]  # Remove "f://" prefix
-                try:
-                    eval(expression)
-                except Exception:
-                    raise ValueError(f"Invalid expression: {expression}")
+            expr_body = new_formula[4:]
+            if var_names:
+                python_expr, allowed = sanitize_for_validation(expr_body)
+                validate_formula(python_expr, allowed_symbols=allowed)
+            else:
+                validate_formula(expr_body, allowed_symbols=set())
 
             def delayed_update():
                 try:
