@@ -209,10 +209,7 @@ class TraceDisplay(Display):
         footer_info_layout.setContentsMargins(0, 0, 0, 0)
 
         footer_label_data = (
-            (self.git_version(), "Trace Version"),
             (gethostname(), "Node Name"),
-            (getuser(), "User Name"),
-            (str(os.getpid()), "PID"),
             (os.getenv("PYDM_ARCHIVER_URL"), "Archiver URL"),
         )
 
@@ -243,6 +240,7 @@ class TraceDisplay(Display):
         if hasattr(self, "file_label") and self.file_label is not None:
             self.file_label.setText(filename)
         else:
+            self.footer_info.layout().addWidget(BreakerLabel(self.footer_info))
             self.file_label = QLabel(filename, self.footer_info)
             self.file_label.setFont(self.footer_label_font)
             self.file_label.setToolTip("Currently loaded file")
