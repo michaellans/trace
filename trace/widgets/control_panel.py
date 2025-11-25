@@ -324,7 +324,7 @@ class ControlPanel(QtWidgets.QWidget):
 
         return plot_curves
 
-    @QtCore.Slot()
+    """@QtCore.Slot()
     def add_curve(self, pv: str = None) -> "CurveItem":
         if pv is None and self.sender():
             pv = self.sender().text()
@@ -336,7 +336,103 @@ class ControlPanel(QtWidgets.QWidget):
         if pv.startswith("f://"):
             return last_axis.add_formula_curve(pv)
         else:
-            return last_axis.add_curve(pv)
+            return last_axis.add_curve(pv)"""
+    
+    @QtCore.Slot()
+    def add_curve(self, pv: str = None, channel_args: dict = None) -> "CurveItem":
+        """Create a new ArchivePlotCurveItem for the given PV and add it
+        to this AxisItem. Also creates a CurveItem widget for it.
+
+        Parameters
+        ----------
+        pv : str
+            The process variable name to create the curve for.
+        channel_args : dict, optional
+            The arguments to pass to the ArchivePlotCurveItem constructor,
+            by default None
+
+        Returns
+        -------
+        CurveItem
+            The created CurveItem widget.
+        """
+        print("Add curve")
+
+        # pv name from line edit probably?
+        if pv is None and self.sender():
+            pv = self.sender().text()
+
+        last_axis = self.get_last_axis_item()
+        if not last_axis:
+            last_axis = self.add_empty_axis()
+            print(f"New last axis: {last_axis.source.name}")
+
+        # formula curve break here idk how that works
+        if pv.startswith("f://"):
+            return last_axis.add_formula_curve(pv)
+        
+        
+        # make curve w/ args
+        palette = self.curve_palette
+        color = ColorButton.index_color(len(self.plot._curves), palette=palette)
+        # default args values
+        args = {
+            "y_channel": pv,
+            "name": pv,
+            "color": color,
+            "useArchiveData": True,
+        }
+        # if channel_args given as parameter update with channel_args
+        if channel_args is not None:
+            args.update(channel_args)
+        
+        # This is probably where the axis name should get changed if auto-assigning but 
+        # you don't actually have a PV object yet 
+        # why is this method in axisItem
+
+        # or get the right axis if it exits, or create it if not, then add curve to that axis!
+
+        # add curve to plot
+        plot_curve_item = self.plot.addYChannel(**args)
+        curve_item = last_axis.make_curve_widget(plot_curve_item)
+
+        # add curve to desired axis
+        if "yAxisName" in args:
+            print("yAxisName")
+            axis_name = args.get("yAxisName")
+        else:
+            print("no yAxisName")
+        #    # set based on unit
+            units = curve_item.source.units
+            print(f"Units: {units}")
+            if units:
+                axis_name = units
+            else:
+                axis_name = None
+                
+        if axis_name:
+            print(f"Axis name: {axis_name}")
+            self.move_curve_to_axis(curve_item, axis_name)
+        else:
+            print("none")
+        #        
+        #    # Move to axis automatically based on unit
+        #    # curve_item.source.unitSignal.connect(lambda unit: self.move_curve_to_axis(self, unit))
+
+
+        # now try to get the right axis or create a new one
+        # try:
+        #    # axis_name = args.get("yAxisName", "Y-Axis 0")
+        #    axis_item = self.get_axis_item(axis_name)
+        # except KeyError:
+        #    axis_item = self.get_last_axis_item()
+
+        # if axis_item is None:
+        #    axis_item = self.add_empty_axis(axis_name)
+
+        # self.move_curve_to_axis(self, axis_name)
+        return curve_item
+        # return axis_item.make_curve_widget(plot_curve_item)
 
     def clear_all(self) -> None:
         """Clear all axes and curves from the plot and control panel."""
@@ -589,38 +685,7 @@ class AxisItem(QtWidgets.QWidget):
 
         return curve_item
 
-    def add_curve(self, pv: str, channel_args: dict = None) -> "CurveItem":
-        """Create a new ArchivePlotCurveItem for the given PV and add it
-        to this AxisItem. Also creates a CurveItem widget for it.
 
-        Parameters
-        ----------
-        pv : str
-            The process variable name to create the curve for.
-        channel_args : dict, optional
-            The arguments to pass to the ArchivePlotCurveItem constructor,
-            by default None
-
-        Returns
-        -------
-        CurveItem
-            The created CurveItem widget.
-        """
-        palette = self.control_panel.curve_palette
-        color = ColorButton.index_color(len(self.plot._curves), palette=palette)
-        args = {
-            "y_channel": pv,
-            "name": pv,
-            "color": color,
-            "useArchiveData": True,
-            "yAxisName": self.source.name,
-        }
-        if channel_args is not None:
-            args.update(channel_args)
-
-        plot_curve_item = self.plot.addYChannel(**args)
-
-        return self.make_curve_widget(plot_curve_item)
 
     def add_formula_curve(self, formula: str) -> "CurveItem":
         """Create a new FormulaCurveItem for the given formula and add it
@@ -950,8 +1015,8 @@ class CurveItem(QtWidgets.QWidget):
 
         self.variable_name = self.control_panel.key_gen.send(self.source)
         self.control_panel.curve_dict[self.variable_name] = self.source
-        if not self.is_formula_curve():
-            self.source.unitSignal.connect(lambda unit: self.control_panel.move_curve_to_axis(self, unit))
+        # if not self.is_formula_curve():
+        #    self.source.unitSignal.connect(lambda unit: self.control_panel.move_curve_to_axis(self, unit))
 
         self.setup_layout()
 
