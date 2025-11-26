@@ -334,12 +334,12 @@ class ControlPanel(QtWidgets.QWidget):
             last_axis = self.add_empty_axis()
 
         if pv.startswith("f://"):
-            curve = last_axis.add_formula_curve(pv)
+            return last_axis.add_formula_curve(pv)
         else:
             curve = last_axis.add_curve(pv)
-            curve.move_to_axis_from_unit()
+            curve.move_to_axis_from_unit()  # Move to axis based on unit
 
-        return curve
+            return curve
 
     def clear_all(self) -> None:
         """Clear all axes and curves from the plot and control panel."""
@@ -957,6 +957,7 @@ class CurveItem(QtWidgets.QWidget):
         self.setup_layout()
 
     def move_to_axis_from_unit(self):
+        """Automatically move curve to axis based on unit"""
         if not self.is_formula_curve():
             unit = self.source.units
             if unit:
